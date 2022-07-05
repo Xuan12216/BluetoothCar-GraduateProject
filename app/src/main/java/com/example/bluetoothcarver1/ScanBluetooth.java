@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
-public class ScanBluetooth extends AppCompatActivity {
-
+public class ScanBluetooth extends AppCompatActivity
+{
     private static final String TAG = MainActivity.class.getSimpleName()+"My";
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private static final int REQUEST_FINE_LOCATION_PERMISSION = 102;
@@ -34,7 +34,8 @@ public class ScanBluetooth extends AppCompatActivity {
     RecyclerViewAdapter mAdapter;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_scan_bluetooth);
@@ -47,32 +48,38 @@ public class ScanBluetooth extends AppCompatActivity {
     }
 
     /**權限相關認證*/
-    private void checkPermission() {
+    private void checkPermission()
+    {
         /**確認手機版本是否在API18以上，否則退出程式*/
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+        {
             /**確認是否已開啟取得手機位置功能以及權限*/
             int hasGone = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
-            if (hasGone != PackageManager.PERMISSION_GRANTED) {
+            if (hasGone != PackageManager.PERMISSION_GRANTED)
+            {
                 requestPermissions(
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         REQUEST_FINE_LOCATION_PERMISSION);
             }
             /**確認手機是否支援藍牙BLE*/
-            if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE))
+            {
                 Toast.makeText(this,"Not support Bluetooth", Toast.LENGTH_SHORT).show();
                 finish();
             }
             /**開啟藍芽適配器*/
-            if(!mBluetoothAdapter.isEnabled()){
-                Toast.makeText(this,"start bluetooth test", Toast.LENGTH_SHORT).show();
+            if(!mBluetoothAdapter.isEnabled())
+            {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(enableBtIntent,REQUEST_ENABLE_BT);
             }
-        }else finish();
+        }
+        else finish();
     }
 
     /**初始藍牙掃描及掃描開關之相關功能*/
-    private void bluetoothScan() {
+    private void bluetoothScan()
+    {
         /**啟用藍牙適配器*/
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -88,12 +95,15 @@ public class ScanBluetooth extends AppCompatActivity {
         /**製作停止/開始掃描的按鈕*/
         final Button btScan = findViewById(R.id.button_Scan);
         btScan.setOnClickListener((v)-> {
-            if (isScanning) {
+            if (isScanning)
+            {
                 /**關閉掃描*/
                 isScanning = false;
                 btScan.setText("開始掃描");
                 mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            }else{
+            }
+            else
+            {
                 /**開啟掃描*/
                 isScanning = true;
                 btScan.setText("停止掃描");
@@ -105,7 +115,8 @@ public class ScanBluetooth extends AppCompatActivity {
     }
 
     @Override
-    protected void onStart() {
+    protected void onStart()
+    {
         super.onStart();
         final Button btScan = findViewById(R.id.button_Scan);
         isScanning = true;
@@ -116,7 +127,8 @@ public class ScanBluetooth extends AppCompatActivity {
     }
     /**避免跳轉後掃描程序係續浪費效能，因此離開頁面後即停止掃描*/
     @Override
-    protected void onStop() {
+    protected void onStop()
+    {
         super.onStop();
         final Button btScan = findViewById(R.id.button_Scan);
         /**關閉掃描*/
@@ -126,12 +138,16 @@ public class ScanBluetooth extends AppCompatActivity {
     }
 
     /**顯示掃描到物件*/
-    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback()
+    {
         @Override
-        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-            new Thread(()->{
+        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord)
+        {
+            new Thread(()->
+            {
                 /**如果裝置沒有名字，就不顯示*/
-                if (device.getName()!= null){
+                if (device.getName()!= null)
+                {
                     /**將搜尋到的裝置加入陣列*/
                     findDevice.add(new ScannedData(device.getName()
                             , String.valueOf(rssi)
@@ -139,7 +155,8 @@ public class ScanBluetooth extends AppCompatActivity {
                             , device.getAddress()));
                     /**將陣列中重複Address的裝置濾除，並使之成為最新數據*/
                     ArrayList newList = getSingle(findDevice);
-                    runOnUiThread(()->{
+                    runOnUiThread(()->
+                    {
                         /**將陣列送到RecyclerView列表中*/
                         mAdapter.addDevice(newList);
                     });
@@ -148,29 +165,40 @@ public class ScanBluetooth extends AppCompatActivity {
         }
     };
     /**濾除重複的藍牙裝置(以Address判定)*/
-    private ArrayList getSingle(ArrayList list) {
+    private ArrayList getSingle(ArrayList list)
+    {
         ArrayList tempList = new ArrayList<>();
-        try {
+        try
+        {
             Iterator it = list.iterator();
-            while (it.hasNext()) {
+            while (it.hasNext())
+            {
                 Object obj = it.next();
-                if (!tempList.contains(obj)) {
+                if (!tempList.contains(obj))
+                {
                     tempList.add(obj);
-                } else {
+                }
+                else
+                {
                     tempList.set(getIndex(tempList, obj), obj);
                 }
             }
             return tempList;
-        } catch (ConcurrentModificationException e) {
+        }
+        catch (ConcurrentModificationException e)
+        {
             return tempList;
         }
     }
     /**
      * 以Address篩選陣列->抓出該值在陣列的哪處
      */
-    private int getIndex(ArrayList temp, Object obj) {
-        for (int i = 0; i < temp.size(); i++) {
-            if (temp.get(i).toString().contains(obj.toString())) {
+    private int getIndex(ArrayList temp, Object obj)
+    {
+        for (int i = 0; i < temp.size(); i++)
+        {
+            if (temp.get(i).toString().contains(obj.toString()))
+            {
                 return i;
             }
         }
@@ -179,13 +207,16 @@ public class ScanBluetooth extends AppCompatActivity {
     /**
      * Byte轉16進字串工具
      */
-    public static String byteArrayToHexStr(byte[] byteArray) {
-        if (byteArray == null) {
+    public static String byteArrayToHexStr(byte[] byteArray)
+    {
+        if (byteArray == null)
+        {
             return null;
         }
 
         StringBuilder hex = new StringBuilder(byteArray.length * 2);
-        for (byte aData : byteArray) {
+        for (byte aData : byteArray)
+        {
             hex.append(String.format("%02X", aData));
         }
         String gethex = hex.toString();
@@ -193,14 +224,14 @@ public class ScanBluetooth extends AppCompatActivity {
     }
 
     /**取得欲連線之裝置後跳轉頁面*/
-    private RecyclerViewAdapter.OnItemClick itemClick = new RecyclerViewAdapter.OnItemClick() {
+    private RecyclerViewAdapter.OnItemClick itemClick = new RecyclerViewAdapter.OnItemClick()
+    {
         @Override
-        public void onItemClick(ScannedData selectedDevice) {
-
+        public void onItemClick(ScannedData selectedDevice)
+        {
             Intent intent = new Intent(ScanBluetooth.this, DetectNControlActivity.class);
-            //intent.putExtra(DetectNControlActivity.INTENT_KEY,selectedDevice);
+            intent.putExtra(DetectNControlActivity.INTENT_KEY,selectedDevice);
             startActivity(intent);
         }
     };
-
 }

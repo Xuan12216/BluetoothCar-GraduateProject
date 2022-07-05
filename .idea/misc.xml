@@ -3,6 +3,14 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/activity_detect_ncontrol.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/activity_main.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/activity_scan_bluetooth.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/characteristic_item.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/descriptor_item.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/detect.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/service_item.xml" value="0.22826086956521738" />
+        <entry key="..\:/Program file location/Android Studio/BluetoothCar-GraduateProject/app/src/main/res/layout/test.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/XUAN/AndroidStudioProjects/BluetoothCarVer1/app/src/main/res/layout/activity_detect_ncontrol.xml" value="0.24682971014492755" />
         <entry key="..\:/Users/XUAN/AndroidStudioProjects/BluetoothCarVer1/app/src/main/res/layout/activity_main.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/XUAN/AndroidStudioProjects/BluetoothCarVer1/app/src/main/res/layout/activity_scan_bluetooth.xml" value="0.22826086956521738" />

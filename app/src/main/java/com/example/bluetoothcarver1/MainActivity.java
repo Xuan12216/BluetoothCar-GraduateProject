@@ -33,20 +33,40 @@ import java.util.List;
 
 public class MainActivity extends Activity
 {
-    private static final String     TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
 
-    private BluetoothLeService mBluetoothLeService;
-    private ScannedData selectedDevice;
+    public MainActivity() {
+        Log.i(TAG, "Instantiated new " + this.getClass());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         setContentView(R.layout.activity_main);
+
+        Button ScanBluetooth = findViewById(R.id.Bluetooth);
+        ScanBluetooth.setOnClickListener(onClickListener);
     }
 
-    public void onBluetooth(View v)
+    public View.OnClickListener onClickListener = new View.OnClickListener()
     {
-        startActivity(new Intent(MainActivity.this, ScanBluetooth.class));
-    }
+        @Override
+        public void onClick(View view)
+        {
+            switch (view.getId())
+            {
+                case R.id.Bluetooth:
+                    startActivity(new Intent(MainActivity.this, ScanBluetooth.class));
+                break;
+            }
+        }
+    };
 }
