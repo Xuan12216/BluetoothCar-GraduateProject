@@ -36,7 +36,6 @@ public class SelfControl extends AppCompatActivity implements ExpandableListAdap
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
     private ExpandableListAdapter expandableListAdapter;
-    private boolean isLedOn = false;
     private Button btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9;
 
     public SelfControl() { Log.i(TAG, "Instantiated new " + this.getClass()); }
@@ -167,7 +166,6 @@ public class SelfControl extends AppCompatActivity implements ExpandableListAdap
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
                 tvRespond.setText("String: "+stringData+"\n"
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
-                isLedOn = BluetoothLeService.byteArrayToHexStr(getByteData).equals("486173206F6E");
             }
         }
     };//onReceive
