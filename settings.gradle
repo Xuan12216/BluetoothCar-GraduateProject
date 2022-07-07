@@ -14,3 +14,10 @@ dependencyResolutionManagement {
 }
 rootProject.name = "BluetoothCarVer1"
 include ':app'
+include ':java'
+include ':java'
+include ':java'
+include ':java'
+include ':java'
+include ':openCVLibrary3416'
+include ':openCVLibrary3416'

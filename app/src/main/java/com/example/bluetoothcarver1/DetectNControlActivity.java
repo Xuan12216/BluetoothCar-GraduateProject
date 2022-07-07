@@ -34,7 +34,7 @@ public class DetectNControlActivity extends AppCompatActivity
     private static final String     TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
     private ScannedData selectedDevice;
-    Button btn_selfControl;
+    Button btn_selfControl,btn_opencvControl;
 
     public DetectNControlActivity() { Log.i(TAG, "Instantiated new " + this.getClass()); }
 
@@ -50,6 +50,9 @@ public class DetectNControlActivity extends AppCompatActivity
         setContentView(R.layout.activity_detect_ncontrol);
         btn_selfControl = (Button) findViewById(R.id.btn_selfControl);
         btn_selfControl.setOnClickListener(onClickListener);
+        btn_opencvControl = (Button) findViewById(R.id.btn_opencvControl);
+        btn_opencvControl.setOnClickListener(onClickListener);
+
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
     }
 
@@ -64,6 +67,11 @@ public class DetectNControlActivity extends AppCompatActivity
                     Intent intent = new Intent(DetectNControlActivity.this, SelfControl.class);
                     intent.putExtra(SelfControl.INTENT_KEY,selectedDevice);
                     startActivity(intent);
+                    break;
+                case R.id.btn_opencvControl:
+                    Intent intent1 = new Intent(DetectNControlActivity.this, OpenCvControl.class);
+                    intent1.putExtra(OpenCvControl.INTENT_KEY,selectedDevice);
+                    startActivity(intent1);
                     break;
             }
         }
