@@ -14,37 +14,18 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
-
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
-
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
-import com.example.bluetoothcarver1.Module.Enitiy.ServiceInfo;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
-
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.aruco.Aruco;
-import org.opencv.aruco.CharucoBoard;
-import org.opencv.aruco.Dictionary;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.imgproc.Moments;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -103,6 +84,7 @@ public class OpenCvControl extends CameraActivity
         mOpenCvCameraView.setCvCameraViewListener(cvCameraViewListener);
     }
 
+    //----以下是 OpenCV 的功能----//
     @Override
     public void onPause()
     {
@@ -160,9 +142,8 @@ public class OpenCvControl extends CameraActivity
     {
         return Collections.singletonList(mOpenCvCameraView);
     }
-
-
-    //OpenCV
+    //----以上是 OpenCV 的功能----//
+    //----以下是 Bluetooth 的功能----//
     /**初始化藍芽*/
     private void initBLE()
     {
@@ -198,9 +179,8 @@ public class OpenCvControl extends CameraActivity
         {
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
             if (!mBluetoothLeService.initialize())
-            {
                 finish();
-            }
+
             mBluetoothLeService.connect(selectedDevice.getAddress());
         }
 
@@ -223,9 +203,8 @@ public class OpenCvControl extends CameraActivity
             }
             /**如果沒有連接*/
             else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action))
-            {
                 Log.d(TAG, "藍芽已斷開");
-            }
+
             /**找到GATT服務*/
             else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action))
             {
@@ -261,9 +240,7 @@ public class OpenCvControl extends CameraActivity
                 Log.d(TAG, "\tCharacteristic: "+characteristic.getUuid().toString()+" ,Properties: "+
                         mBluetoothLeService.getPropertiesTagArray(characteristic.getProperties()));
                 for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors())
-                {
                     Log.d(TAG, "\t\tDescriptor: "+descriptor.getUuid().toString());
-                }
             }
         }
     }
@@ -282,4 +259,5 @@ public class OpenCvControl extends CameraActivity
         super.onStop();
         closeBluetooth();
     }
+    //----以上是 Bluetooth 的功能----//
 }

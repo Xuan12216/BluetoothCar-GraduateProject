@@ -3,7 +3,6 @@ package com.example.bluetoothcarver1;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -16,7 +15,6 @@ import android.os.Bundle;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.Toast;
-
 import com.example.bluetoothcarver1.Module.Adapter.RecyclerViewAdapter;
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import java.util.ArrayList;
@@ -56,11 +54,7 @@ public class ScanBluetooth extends AppCompatActivity
             /**確認是否已開啟取得手機位置功能以及權限*/
             int hasGone = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
             if (hasGone != PackageManager.PERMISSION_GRANTED)
-            {
-                requestPermissions(
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_FINE_LOCATION_PERMISSION);
-            }
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION_PERMISSION);
             /**確認手機是否支援藍牙BLE*/
             if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE))
             {
@@ -81,8 +75,7 @@ public class ScanBluetooth extends AppCompatActivity
     private void bluetoothScan()
     {
         /**啟用藍牙適配器*/
-        final BluetoothManager bluetoothManager =
-                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         /**開始掃描*/
         mBluetoothAdapter.startLeScan(mLeScanCallback);
@@ -94,7 +87,8 @@ public class ScanBluetooth extends AppCompatActivity
         recyclerView.setAdapter(mAdapter);
         /**製作停止/開始掃描的按鈕*/
         final Button btScan = findViewById(R.id.button_Scan);
-        btScan.setOnClickListener((v)-> {
+        btScan.setOnClickListener((v)->
+        {
             if (isScanning)
             {
                 /**關閉掃描*/
@@ -175,13 +169,9 @@ public class ScanBluetooth extends AppCompatActivity
             {
                 Object obj = it.next();
                 if (!tempList.contains(obj))
-                {
                     tempList.add(obj);
-                }
                 else
-                {
                     tempList.set(getIndex(tempList, obj), obj);
-                }
             }
             return tempList;
         }
@@ -198,9 +188,8 @@ public class ScanBluetooth extends AppCompatActivity
         for (int i = 0; i < temp.size(); i++)
         {
             if (temp.get(i).toString().contains(obj.toString()))
-            {
                 return i;
-            }
+
         }
         return -1;
     }
@@ -210,15 +199,11 @@ public class ScanBluetooth extends AppCompatActivity
     public static String byteArrayToHexStr(byte[] byteArray)
     {
         if (byteArray == null)
-        {
             return null;
-        }
 
         StringBuilder hex = new StringBuilder(byteArray.length * 2);
         for (byte aData : byteArray)
-        {
             hex.append(String.format("%02X", aData));
-        }
         String gethex = hex.toString();
         return gethex;
     }

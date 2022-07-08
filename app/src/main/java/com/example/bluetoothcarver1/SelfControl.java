@@ -19,11 +19,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
-
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
-import com.example.bluetoothcarver1.Module.Enitiy.ServiceInfo;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -42,11 +39,6 @@ public class SelfControl extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         setContentView(R.layout.activity_self_control);
 
         btn1 = (Button) findViewById(R.id.button1);
@@ -109,9 +101,8 @@ public class SelfControl extends AppCompatActivity
         {
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
             if (!mBluetoothLeService.initialize())
-            {
                 finish();
-            }
+
             mBluetoothLeService.connect(selectedDevice.getAddress());
         }
 
@@ -136,9 +127,8 @@ public class SelfControl extends AppCompatActivity
             }
             /**如果沒有連接*/
             else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action))
-            {
                 Log.d(TAG, "藍芽已斷開");
-            }
+
             /**找到GATT服務*/
             else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action))
             {
@@ -173,9 +163,7 @@ public class SelfControl extends AppCompatActivity
                 Log.d(TAG, "\tCharacteristic: "+characteristic.getUuid().toString()+" ,Properties: "+
                         mBluetoothLeService.getPropertiesTagArray(characteristic.getProperties()));
                 for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors())
-                {
                     Log.d(TAG, "\t\tDescriptor: "+descriptor.getUuid().toString());
-                }
             }
         }
     }
