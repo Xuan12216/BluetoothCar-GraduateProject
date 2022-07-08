@@ -20,7 +20,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.example.bluetoothcarver1.Module.Adapter.ExpandableListAdapter;
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Enitiy.ServiceInfo;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
@@ -28,14 +27,13 @@ import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class SelfControl extends AppCompatActivity implements ExpandableListAdapter.OnChildClick
+public class SelfControl extends AppCompatActivity
 {
     private static final String TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
     private BluetoothLeService mBluetoothLeService;
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
-    private ExpandableListAdapter expandableListAdapter;
     private Button btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9;
 
     public SelfControl() { Log.i(TAG, "Instantiated new " + this.getClass()); }
@@ -95,10 +93,6 @@ public class SelfControl extends AppCompatActivity implements ExpandableListAdap
     /**初始化UI*/
     private void initUI()
     {
-        expandableListAdapter = new ExpandableListAdapter();
-        expandableListAdapter.onChildClick = this::onChildClick;
-        //ExpandableListView expandableListView = findViewById(R.id.gatt_services_list);
-        //expandableListView.setAdapter(expandableListAdapter);
         tvAddress = findViewById(R.id.device_address);
         tvStatus = findViewById(R.id.connection_state);
         tvRespond = findViewById(R.id.data_value);
@@ -151,7 +145,6 @@ public class SelfControl extends AppCompatActivity implements ExpandableListAdap
                 Log.d(TAG, "已搜尋到GATT服務");
                 List<BluetoothGattService> gattList =  mBluetoothLeService.getSupportedGattServices();
                 displayGattAtLogCat(gattList);
-                expandableListAdapter.setServiceInfo(gattList);
             }
             /**接收來自藍芽傳回的資料*/
             else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action))
@@ -200,13 +193,6 @@ public class SelfControl extends AppCompatActivity implements ExpandableListAdap
     {
         super.onStop();
         closeBluetooth();
-    }
-
-    @Override
-    public void onChildClick(ServiceInfo.CharacteristicInfo info)
-    {
-        String sendData = "SRV2000150015001500#";
-        mBluetoothLeService.send(sendData.getBytes());
     }
 
     public View.OnClickListener onClickListener = new View.OnClickListener()

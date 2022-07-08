@@ -1,7 +1,5 @@
 package com.example.bluetoothcarver1;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
@@ -11,70 +9,160 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.SurfaceView;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import com.example.bluetoothcarver1.Module.Adapter.ExpandableListAdapter;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Enitiy.ServiceInfo;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.JavaCameraView;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.aruco.Aruco;
+import org.opencv.aruco.CharucoBoard;
+import org.opencv.aruco.Dictionary;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class OpenCvControl extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 , ExpandableListAdapter.OnChildClick
+public class OpenCvControl extends CameraActivity
 {
-    //Bluetooth
-    private static final String     TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
     private BluetoothLeService mBluetoothLeService;
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
-    private ExpandableListAdapter expandableListAdapter;
+    private boolean isLedOn = false;
 
-    //OpenCV
+    private CameraBridgeViewBase mOpenCvCameraView;
 
-    //-------------------------------------------
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
+    {
+        @Override
+        public void onManagerConnected(int status)
+        {
+            switch (status)
+            {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i(TAG, "OpenCV loaded successfully");
+                    mOpenCvCameraView.enableView();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
 
-    public OpenCvControl() { Log.i(TAG, "Instantiated new " + this.getClass()); }
+    public OpenCvControl() {
+        Log.i(TAG, "Instantiated new " + this.getClass());
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
+    public void onCreate(@Nullable Bundle savedInstanceState)
     {
+        Log.i(TAG, "called onCreate");
         super.onCreate(savedInstanceState);
-        Log.d("OPENCV", "OpenCVLoader:"+ OpenCVLoader.initDebug());
-        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         setContentView(R.layout.activity_open_cv_control);
 
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
         initBLE();
         initUI();
+
+        mOpenCvCameraView = findViewById(R.id.opencv_surface_view);
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+        mOpenCvCameraView.setCvCameraViewListener(cvCameraViewListener);
     }
 
-    private void initUI()
+    @Override
+    public void onPause()
     {
-        expandableListAdapter = new ExpandableListAdapter();
-        expandableListAdapter.onChildClick = this::onChildClick;
-        tvAddress = findViewById(R.id.device_address);
-        tvStatus = findViewById(R.id.connection_state);
-        tvRespond = findViewById(R.id.data_value);
-        tvAddress.setText(selectedDevice.getAddress());
-        tvStatus.setText("未連線");
-        tvRespond.setText("---");
+        super.onPause();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        if (!OpenCVLoader.initDebug())
+        {
+            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+        }
+        else
+        {
+            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }
+
+    public void onDestroy()
+    {
+        super.onDestroy();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
+    }
+
+    private CameraBridgeViewBase.CvCameraViewListener2 cvCameraViewListener = new CameraBridgeViewBase.CvCameraViewListener2()
+    {
+        @Override
+        public void onCameraViewStarted(int width, int height)
+        {
+
+        }
+
+        @Override
+        public void onCameraViewStopped()
+        {
+
+        }
+
+        @Override
+        public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
+        {
+            return inputFrame.rgba();
+        }
+    };
+
+    @Override
+    protected List<? extends CameraBridgeViewBase> getCameraViewList()
+    {
+        return Collections.singletonList(mOpenCvCameraView);
+    }
+
+
+    //OpenCV
     /**初始化藍芽*/
     private void initBLE()
     {
@@ -92,7 +180,16 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
         registerReceiver(mGattUpdateReceiver, intentFilter);
         if (mBluetoothLeService != null) mBluetoothLeService.connect(selectedDevice.getAddress());
     }
-
+    /**初始化UI*/
+    private void initUI()
+    {
+        tvAddress = findViewById(R.id.device_address);
+        tvStatus = findViewById(R.id.connection_state);
+        tvRespond = findViewById(R.id.data_value);
+        tvAddress.setText(selectedDevice.getAddress());
+        tvStatus.setText("未連線");
+        tvRespond.setText("---");
+    }
     /**藍芽已連接/已斷線資訊回傳*/
     private ServiceConnection mServiceConnection = new ServiceConnection()
     {
@@ -113,12 +210,9 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
             mBluetoothLeService.disconnect();
         }
     };
-
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver()
-    {
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context context, Intent intent)
-        {
+        public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
 
             /**如果有連接*/
@@ -138,7 +232,6 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
                 Log.d(TAG, "已搜尋到GATT服務");
                 List<BluetoothGattService> gattList =  mBluetoothLeService.getSupportedGattServices();
                 displayGattAtLogCat(gattList);
-                expandableListAdapter.setServiceInfo(gattList);
             }
             /**接收來自藍芽傳回的資料*/
             else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action))
@@ -153,10 +246,10 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
                 tvRespond.setText("String: "+stringData+"\n"
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
+                isLedOn = BluetoothLeService.byteArrayToHexStr(getByteData).equals("486173206F6E");
             }
         }
     };//onReceive
-
     /**將藍芽所有資訊顯示在Logcat*/
     private void displayGattAtLogCat(List<BluetoothGattService> gattList)
     {
@@ -174,7 +267,6 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
             }
         }
     }
-
     /**關閉藍芽*/
     private void closeBluetooth()
     {
@@ -189,30 +281,5 @@ public class OpenCvControl extends AppCompatActivity implements CameraBridgeView
     {
         super.onStop();
         closeBluetooth();
-    }
-
-    @Override
-    public void onCameraViewStarted(int width, int height)
-    {
-
-    }
-
-    @Override
-    public void onCameraViewStopped()
-    {
-
-    }
-
-    @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
-    {
-        return null;
-    }
-
-    @Override
-    public void onChildClick(ServiceInfo.CharacteristicInfo info)
-    {
-        String sendData = "SRV2000150015001500#";
-        mBluetoothLeService.send(sendData.getBytes());
     }
 }

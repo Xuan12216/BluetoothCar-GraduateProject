@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public class DetectNControlActivity extends AppCompatActivity
 {
-    private static final String     TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
     private ScannedData selectedDevice;
     Button btn_selfControl,btn_opencvControl;
