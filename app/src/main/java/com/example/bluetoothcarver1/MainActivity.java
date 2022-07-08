@@ -30,6 +30,9 @@ public class MainActivity extends Activity
         Button ScanBluetooth = findViewById(R.id.Bluetooth);
         ScanBluetooth.setOnClickListener(onClickListener);
 
+        Button JumpBtn = findViewById(R.id.btn_jump);
+        JumpBtn.setOnClickListener(onClickListener);
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
     }
@@ -44,6 +47,8 @@ public class MainActivity extends Activity
                 case R.id.Bluetooth:
                     startActivity(new Intent(MainActivity.this, ScanBluetooth.class));
                     break;
+                case R.id.btn_jump:
+                    startActivity(new Intent(MainActivity.this,OpenCvControl.class));
                 default:
             }
         }

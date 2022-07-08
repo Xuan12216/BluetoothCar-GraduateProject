@@ -17,6 +17,8 @@ import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
@@ -81,8 +83,8 @@ public class OpenCvControl extends CameraActivity
         setContentView(R.layout.activity_open_cv_control);
 
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
-        initBLE();
-        initUI();
+        //initBLE();
+        //initUI();
 
         mOpenCvCameraView = findViewById(R.id.opencv_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
