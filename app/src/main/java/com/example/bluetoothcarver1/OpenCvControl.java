@@ -26,6 +26,11 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -133,7 +138,19 @@ public class OpenCvControl extends CameraActivity
         @Override
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
-            return inputFrame.rgba();
+            Mat input_rgba = inputFrame.rgba();
+            Mat input_gray = inputFrame.gray();
+
+            MatOfPoint corners = new MatOfPoint();
+            Imgproc.goodFeaturesToTrack(input_gray,corners,20,0.01,10,new Mat(),3,false);
+            Point[] cornersArr = corners.toArray();
+
+            for (int i=0;i<corners.rows();i++)
+            {
+                Imgproc.circle(input_rgba,cornersArr[i],10,new Scalar(0,255,0),2);
+            }
+
+            return input_rgba;
         }
     };
 
