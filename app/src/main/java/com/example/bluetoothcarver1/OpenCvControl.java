@@ -27,25 +27,36 @@ import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.aruco.Aruco;
+import org.opencv.aruco.CharucoBoard;
+import org.opencv.aruco.Dictionary;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class OpenCvControl extends CameraActivity
 {
+    //Bluetooth
     private static final String TAG = "MainActivity";
     public static final String INTENT_KEY = "GET_DEVICE";
     private BluetoothLeService mBluetoothLeService;
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
     private boolean isLedOn = false;
-
+    //OpenCV
+    private  int width_scr, height_scr;
+    int cen_width ,cen_height;
     private CameraBridgeViewBase mOpenCvCameraView;
+    //-----------------------------------------------
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
     {
@@ -128,7 +139,11 @@ public class OpenCvControl extends CameraActivity
         @Override
         public void onCameraViewStarted(int width, int height)
         {
-
+            width_scr = width;
+            height_scr = height;
+            //get the center point of width and height( x , y)
+            cen_width = (int) (width_scr / 2);
+            cen_height = height_scr / 2;
         }
 
         @Override
@@ -141,17 +156,10 @@ public class OpenCvControl extends CameraActivity
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
             Mat input_rgba = inputFrame.rgba();
-            Mat input_gray = inputFrame.gray();
 
-            MatOfPoint corners = new MatOfPoint();
-            Imgproc.goodFeaturesToTrack(input_gray,corners,20,0.01,10,new Mat(),3,false);
-            Point[] cornersArr = corners.toArray();
-
-            for (int i=0;i<corners.rows();i++)
-            {
-                Imgproc.circle(input_rgba,cornersArr[i],10,new Scalar(0,255,0),2);
-            }
-
+            // draw circle at center point
+            Imgproc.circle(input_rgba, new Point(cen_width,cen_height), 10, new Scalar(0, 0, 255), -1);
+            Imgproc.line(input_rgba, new Point(cen_width,0) ,new Point(cen_width,height_scr),  new Scalar(255, 0, 0, 255), 2);
             return input_rgba;
         }
     };
