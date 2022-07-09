@@ -17,9 +17,9 @@ import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
 import org.opencv.android.BaseLoaderCallback;
@@ -27,19 +27,10 @@ import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.aruco.Aruco;
-import org.opencv.aruco.CharucoBoard;
-import org.opencv.aruco.Dictionary;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.imgproc.Moments;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,9 +46,10 @@ public class OpenCvControl extends CameraActivity
     //OpenCV
     private  int width_scr, height_scr;
     int cen_width ,cen_height;
-    private CameraBridgeViewBase mOpenCvCameraView;
+    private CameraBridgeViewBase mOpenCvCameraView; // openCV的相机接口
     //-----------------------------------------------
 
+    // 通过OpenCV管理Android服务，异步初始化OpenCV
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
     {
         @Override
@@ -97,6 +89,7 @@ public class OpenCvControl extends CameraActivity
         //initBLE();
         //initUI();
 
+        // 实现绑定和添加事件监听
         mOpenCvCameraView = findViewById(R.id.opencv_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(cvCameraViewListener);
@@ -114,6 +107,7 @@ public class OpenCvControl extends CameraActivity
     @Override
     public void onResume()
     {
+        // 每次当前Activity激活都会调用此方法，所以可以在此处检测OpenCV的库文件是否加载完毕
         super.onResume();
         if (!OpenCVLoader.initDebug())
         {
@@ -136,6 +130,7 @@ public class OpenCvControl extends CameraActivity
 
     private CameraBridgeViewBase.CvCameraViewListener2 cvCameraViewListener = new CameraBridgeViewBase.CvCameraViewListener2()
     {
+        // 对象实例化以及基本属性的设置，包括：长度、宽度和图像类型标志
         @Override
         public void onCameraViewStarted(int width, int height)
         {
@@ -149,7 +144,6 @@ public class OpenCvControl extends CameraActivity
         @Override
         public void onCameraViewStopped()
         {
-
         }
 
         @Override
@@ -157,9 +151,43 @@ public class OpenCvControl extends CameraActivity
         {
             Mat input_rgba = inputFrame.rgba();
 
-            // draw circle at center point
+            // draw circle and line at center point
             Imgproc.circle(input_rgba, new Point(cen_width,cen_height), 10, new Scalar(0, 0, 255), -1);
-            Imgproc.line(input_rgba, new Point(cen_width,0) ,new Point(cen_width,height_scr),  new Scalar(255, 0, 0, 255), 2);
+            //Imgproc.line(input_rgba, new Point(cen_width,0) ,new Point(cen_width,height_scr),  new Scalar(255, 0, 0, 255), 2);
+            // detect line first detect edges
+            Mat edges = new Mat();
+            Imgproc.Canny(input_rgba,edges,80,200);
+            // detect lines in frame
+            // define variable first
+            // store lines in mat format
+            Mat lines = new Mat();
+            // starting and ending point of lines
+            Point p1 = new Point();
+            Point p2 = new Point();
+            double a,b;
+            double x0,y0;
+            Imgproc.HoughLines(edges,lines,1.0,Math.PI/180.0,140);
+            // then loop through each line
+            for (int i=0;i<lines.rows();i++)
+            {
+                // for each line
+                double[] vec = lines.get(i,0);
+                double rho = vec[0];
+                double theta = vec[1];
+                //
+                a = Math.cos(theta);
+                b = Math.sin(theta);
+                x0 = a * rho;
+                y0 = b * rho;
+                // starting and end point
+                p1.x = Math.round(x0 + 1000 * (-b));
+                p1.y = Math.round(y0 + 1000 * (a));
+                p2.x = Math.round(x0 - 1000 * (-b));
+                p2.y = Math.round(y0 - 1000 * (a));
+                // draw line on ori frame
+                //          draw on start end             color of line      thickness of line
+                Imgproc.line(input_rgba,p1,p2,new Scalar(255.0,255.0,255.0),1,Imgproc.LINE_AA,0);
+            }
             return input_rgba;
         }
     };
