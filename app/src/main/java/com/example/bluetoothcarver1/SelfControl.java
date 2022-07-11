@@ -15,8 +15,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
@@ -82,6 +80,7 @@ public class SelfControl extends AppCompatActivity
         registerReceiver(mGattUpdateReceiver, intentFilter);
         if (mBluetoothLeService != null) mBluetoothLeService.connect(selectedDevice.getAddress());
     }
+
     /**初始化UI*/
     private void initUI()
     {
@@ -112,6 +111,7 @@ public class SelfControl extends AppCompatActivity
             mBluetoothLeService.disconnect();
         }
     };
+
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver()
     {
         @Override
@@ -152,6 +152,7 @@ public class SelfControl extends AppCompatActivity
             }
         }
     };//onReceive
+
     /**將藍芽所有資訊顯示在Logcat*/
     private void displayGattAtLogCat(List<BluetoothGattService> gattList)
     {
@@ -167,6 +168,7 @@ public class SelfControl extends AppCompatActivity
             }
         }
     }
+
     /**關閉藍芽*/
     private void closeBluetooth()
     {

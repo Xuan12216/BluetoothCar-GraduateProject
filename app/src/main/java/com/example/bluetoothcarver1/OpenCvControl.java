@@ -28,6 +28,7 @@ import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -46,6 +47,7 @@ public class OpenCvControl extends CameraActivity
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
     private boolean isLedOn = false;
+    public int arrow=0;
 
     //OpenCV
     //Application settings
@@ -126,7 +128,6 @@ public class OpenCvControl extends CameraActivity
         // 实现绑定和添加事件监听
         openCvCameraView = findViewById(R.id.hough_activity_surface_view);
         openCvCameraView.setCvCameraViewListener(cvCameraViewListener);
-
         //Register accelerometer sensor handler for determining current screen orientation
         SensorManager sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
         sensorManager.registerListener(new SensorEventListener()
@@ -219,7 +220,7 @@ public class OpenCvControl extends CameraActivity
         {
             matRgba = inputFrame.rgba();
             matGray = inputFrame.gray();
-
+            Imgproc.circle(matRgba, new Point(width/2,320), 10, new Scalar(0, 0, 255), -1);
             //Bottom half of landscape image
             matGray.submat(height / 2 -100, height, 250, width-250).copyTo(matEdges.submat(height / 2 -100, height, 250, width-250));
             // Adaptive threshold
@@ -253,9 +254,9 @@ public class OpenCvControl extends CameraActivity
     private void drawTmpToMRgba(Mat tmp)
     {
         //draw line
-        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(width-250, height / 2 - 101), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(250, height), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width-250, height / 2 - 101), new Point(width-250, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(width-251, height / 2 - 101), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(251, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width-251, height / 2 - 101), new Point(width-251, height), new Scalar(0, 255, 0), 2);
 
         if (tmp != null)
             tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));
@@ -265,6 +266,7 @@ public class OpenCvControl extends CameraActivity
     {
         //Matrix of detected line segments
         lines = new Mat();
+
         //Line segments detection
         Imgproc.HoughLinesP(matEdges, lines, 1, Math.PI / 180, getLineThreshold(), minLineSize, maxLineGap);
         //Draw line segments
@@ -278,7 +280,19 @@ public class OpenCvControl extends CameraActivity
 
             Point start = new Point(x1, y1);
             Point end = new Point(x2, y2);
-
+            if((width/2)-20<x1 &&(width/2)+20>x2){
+                arrow=1;
+                Imgproc.putText(matRgba,"mid",new org.opencv.core.Point(0,300),
+                        0,2.6f,new Scalar(255,255,0));
+            }else if((width/2)-x1>x2-(width/2)){
+                arrow=2;
+                Imgproc.putText(matRgba,"right",new org.opencv.core.Point(0,300),
+                        0,2.6f,new Scalar(255,255,0));
+            }else{
+                arrow=3;
+                Imgproc.putText(matRgba,"left",new org.opencv.core.Point(0,300),
+                        0,2.6f,new Scalar(255,255,0));
+            }
             Imgproc.line(matRgba, start, end, new Scalar(255, 0, 0), 3);
         }
 
