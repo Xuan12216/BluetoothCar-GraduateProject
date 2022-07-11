@@ -49,6 +49,7 @@ public class OpenCvControl extends CameraActivity
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
     private boolean isLedOn = false;
+
     //OpenCV
     //Application settings
     private static final int SETTINGS = 10;
@@ -234,6 +235,7 @@ public class OpenCvControl extends CameraActivity
             return matRgba;
         }
     };
+
     /**
      * Lower threshold for portrait orientation and for detecting road lanes with horizon
      *
@@ -245,6 +247,7 @@ public class OpenCvControl extends CameraActivity
 
         return actualThresh;
     }
+
     /**
      * Draw detected lines to output image from temporary matrix
      *
@@ -296,6 +299,7 @@ public class OpenCvControl extends CameraActivity
         return Collections.singletonList(openCvCameraView);
     }
     //----以上是 OpenCV 的功能----//
+
     //----以下是 Bluetooth 的功能----//
     /**初始化藍芽*/
     private void initBLE()
@@ -312,7 +316,8 @@ public class OpenCvControl extends CameraActivity
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);//從服務中接受(收)數據
 
         registerReceiver(mGattUpdateReceiver, intentFilter);
-        if (mBluetoothLeService != null) mBluetoothLeService.connect(selectedDevice.getAddress());
+        if (mBluetoothLeService != null)
+            mBluetoothLeService.connect(selectedDevice.getAddress());
     }
     /**初始化UI*/
     private void initUI()
@@ -382,6 +387,7 @@ public class OpenCvControl extends CameraActivity
             }
         }
     };//onReceive
+
     /**將藍芽所有資訊顯示在Logcat*/
     private void displayGattAtLogCat(List<BluetoothGattService> gattList)
     {
@@ -397,6 +403,7 @@ public class OpenCvControl extends CameraActivity
             }
         }
     }
+
     /**關閉藍芽*/
     private void closeBluetooth()
     {
