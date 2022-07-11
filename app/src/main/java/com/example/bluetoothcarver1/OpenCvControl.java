@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Sensor;
@@ -18,11 +17,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.SurfaceView;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
@@ -30,20 +25,12 @@ import androidx.annotation.Nullable;
 
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
-import com.example.bluetoothcarver1.line.HoughLine;
-import com.example.bluetoothcarver1.line.Line;
-import com.example.bluetoothcarver1.pref.PreferencesActivity;
-import com.example.bluetoothcarver1.transform.HoughCircles2D;
-import com.example.bluetoothcarver1.transform.HoughCircles3D;
-import com.example.bluetoothcarver1.transform.HoughLineTransform;
-import com.example.bluetoothcarver1.transform.HoughLines;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -52,7 +39,6 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 public class OpenCvControl extends CameraActivity
 {
@@ -237,7 +223,7 @@ public class OpenCvControl extends CameraActivity
             matGray = inputFrame.gray();
 
             //Bottom half of landscape image
-            matGray.submat(height / 2 -100, height, 300, width-300).copyTo(matEdges.submat(height / 2 -100, height, 300, width-300));
+            matGray.submat(height / 2 -100, height, 250, width-250).copyTo(matEdges.submat(height / 2 -100, height, 250, width-250));
             // Adaptive threshold
             Imgproc.adaptiveThreshold(matEdges, matEdges, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 3, -1.5);
             //Delete noise (little white points)
@@ -267,9 +253,10 @@ public class OpenCvControl extends CameraActivity
     private void drawTmpToMRgba(Mat tmp)
     {
         //draw line
-        Imgproc.line(matRgba, new Point(300, height / 2 - 101), new Point(width-300, height / 2 - 101), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(300, height / 2 - 101), new Point(300, height), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width-300, height / 2 - 101), new Point(width-300, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(width-250, height / 2 - 101), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(250, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width-250, height / 2 - 101), new Point(width-250, height), new Scalar(0, 255, 0), 2);
+
         if (tmp != null)
             tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));
     }
