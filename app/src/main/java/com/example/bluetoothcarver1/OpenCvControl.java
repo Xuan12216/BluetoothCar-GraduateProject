@@ -20,12 +20,9 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.WindowManager;
 import android.widget.TextView;
-
 import androidx.annotation.Nullable;
-
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
-
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
