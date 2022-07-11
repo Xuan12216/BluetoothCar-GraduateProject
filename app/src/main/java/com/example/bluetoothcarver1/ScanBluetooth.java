@@ -119,6 +119,7 @@ public class ScanBluetooth extends AppCompatActivity
         mBluetoothAdapter.startLeScan(mLeScanCallback);
         mAdapter.clearDevice();
     }
+
     /**避免跳轉後掃描程序係續浪費效能，因此離開頁面後即停止掃描*/
     @Override
     protected void onStop()
@@ -158,6 +159,7 @@ public class ScanBluetooth extends AppCompatActivity
             }).start();
         }
     };
+
     /**濾除重複的藍牙裝置(以Address判定)*/
     private ArrayList getSingle(ArrayList list)
     {
@@ -180,6 +182,7 @@ public class ScanBluetooth extends AppCompatActivity
             return tempList;
         }
     }
+
     /**
      * 以Address篩選陣列->抓出該值在陣列的哪處
      */
@@ -193,6 +196,7 @@ public class ScanBluetooth extends AppCompatActivity
         }
         return -1;
     }
+
     /**
      * Byte轉16進字串工具
      */

@@ -253,9 +253,9 @@ public class OpenCvControl extends CameraActivity
     private void drawTmpToMRgba(Mat tmp)
     {
         //draw line
-        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(width-250, height / 2 - 101), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(250, height / 2 - 101), new Point(250, height), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width-250, height / 2 - 101), new Point(width-250, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(width-251, height / 2 - 101), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(251, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width-251, height / 2 - 101), new Point(width-251, height), new Scalar(0, 255, 0), 2);
 
         if (tmp != null)
             tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));

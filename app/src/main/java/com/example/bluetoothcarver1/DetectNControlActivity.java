@@ -2,32 +2,14 @@ package com.example.bluetoothcarver1;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.TextView;
-
-import com.example.bluetoothcarver1.Module.Adapter.ExpandableListAdapter;
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
-import com.example.bluetoothcarver1.Module.Enitiy.ServiceInfo;
-import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class DetectNControlActivity extends AppCompatActivity
 {
