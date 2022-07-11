@@ -9,10 +9,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
@@ -22,17 +30,29 @@ import androidx.annotation.Nullable;
 
 import com.example.bluetoothcarver1.Module.Enitiy.ScannedData;
 import com.example.bluetoothcarver1.Module.Service.BluetoothLeService;
+import com.example.bluetoothcarver1.line.HoughLine;
+import com.example.bluetoothcarver1.line.Line;
+import com.example.bluetoothcarver1.pref.PreferencesActivity;
+import com.example.bluetoothcarver1.transform.HoughCircles2D;
+import com.example.bluetoothcarver1.transform.HoughCircles3D;
+import com.example.bluetoothcarver1.transform.HoughLineTransform;
+import com.example.bluetoothcarver1.transform.HoughLines;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 public class OpenCvControl extends CameraActivity
 {
@@ -44,13 +64,32 @@ public class OpenCvControl extends CameraActivity
     private TextView tvAddress,tvStatus,tvRespond;
     private boolean isLedOn = false;
     //OpenCV
-    private  int width_scr, height_scr;
-    int cen_width ,cen_height;
-    private CameraBridgeViewBase mOpenCvCameraView; // openCV的相机接口
+    //Application settings
+    private static final int SETTINGS = 10;
+    //Current screen orientation
+    public static int orientation;
+    //Height of image frame
+    private int height;
+    //Width of image frame
+    private int width;
+    //Working matrices
+    private Mat matRgba;
+    private Mat matGray;
+    private Mat matEdges;
+    private Mat lines;
+    private Bitmap edgeBitmap;
+    //camera bridge
+    private CameraBridgeViewBase openCvCameraView;
+    //How many votes in hough space should indicate line
+    private int lineThreshold;
+    //Minimum line segment length
+    private int minLineSize;
+    //Maximum length of gap between line segments
+    private int maxLineGap;
     //-----------------------------------------------
 
     // 通过OpenCV管理Android服务，异步初始化OpenCV
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
+    private BaseLoaderCallback loaderCallback = new BaseLoaderCallback(this)
     {
         @Override
         public void onManagerConnected(int status)
@@ -60,17 +99,30 @@ public class OpenCvControl extends CameraActivity
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    mOpenCvCameraView.enableView();
-                } break;
+                    openCvCameraView.enableView();
+                }
+                break;
                 default:
                 {
                     super.onManagerConnected(status);
-                } break;
+                }
+                break;
             }
         }
     };
 
-    public OpenCvControl() {
+    /**
+     * Initialize default parameters
+     */
+    public OpenCvControl()
+    {
+        super();
+        lineThreshold = 70;
+        minLineSize = 100;
+        maxLineGap = 100;
+        orientation = 1;
+        width = 0;
+        height = 0;
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
@@ -80,8 +132,6 @@ public class OpenCvControl extends CameraActivity
         Log.i(TAG, "called onCreate");
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_open_cv_control);
 
@@ -90,9 +140,33 @@ public class OpenCvControl extends CameraActivity
         //initUI();
 
         // 实现绑定和添加事件监听
-        mOpenCvCameraView = findViewById(R.id.opencv_surface_view);
-        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-        mOpenCvCameraView.setCvCameraViewListener(cvCameraViewListener);
+        openCvCameraView = findViewById(R.id.hough_activity_surface_view);
+        openCvCameraView.setCvCameraViewListener(cvCameraViewListener);
+
+        //Register accelerometer sensor handler for determining current screen orientation
+        SensorManager sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
+        sensorManager.registerListener(new SensorEventListener()
+        {
+            int orientation = -1;
+            @Override
+            public void onSensorChanged(SensorEvent event)
+            {
+                if (event.values[1] < 6.5 && event.values[1] > -6.5)
+                {
+                    if (orientation != 1)
+                        OpenCvControl.orientation = 1;
+                    orientation = 1;
+                }
+                else
+                {
+                    if (orientation != 0)
+                        OpenCvControl.orientation = 0;
+                    orientation = 0;
+                }
+            }
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        }, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
     }
 
     //----以下是 OpenCV 的功能----//
@@ -100,8 +174,8 @@ public class OpenCvControl extends CameraActivity
     public void onPause()
     {
         super.onPause();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        if (openCvCameraView != null)
+            openCvCameraView.disableView();
     }
 
     @Override
@@ -112,90 +186,127 @@ public class OpenCvControl extends CameraActivity
         if (!OpenCVLoader.initDebug())
         {
             Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, loaderCallback);
         }
         else
         {
             Log.d(TAG, "OpenCV library found inside package. Using it!");
-            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+            loaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
 
     public void onDestroy()
     {
         super.onDestroy();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        if (openCvCameraView != null)
+            openCvCameraView.disableView();
     }
 
     private CameraBridgeViewBase.CvCameraViewListener2 cvCameraViewListener = new CameraBridgeViewBase.CvCameraViewListener2()
     {
         // 对象实例化以及基本属性的设置，包括：长度、宽度和图像类型标志
         @Override
-        public void onCameraViewStarted(int width, int height)
+        public void onCameraViewStarted(int width_scr, int height_scr)
         {
-            width_scr = width;
-            height_scr = height;
-            //get the center point of width and height( x , y)
-            cen_width = (int) (width_scr / 2);
-            cen_height = height_scr / 2;
+            width = width_scr;
+            height = height_scr;
+            matRgba = new Mat(height, width, CvType.CV_8UC4);
+            matGray = new Mat(height, width, CvType.CV_8UC1);
+            matEdges = new Mat(height, width, CvType.CV_8UC1);
+            edgeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         }
 
         @Override
         public void onCameraViewStopped()
         {
+            matRgba.release();
+            matGray.release();
+            matEdges.release();
+            edgeBitmap.recycle();
         }
 
+        /**
+         * Process image frames from camera in real-time and draw them back
+         *
+         * @param inputFrame
+         */
         @Override
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
-            Mat input_rgba = inputFrame.rgba();
+            matRgba = inputFrame.rgba();
+            matGray = inputFrame.gray();
 
-            // draw circle and line at center point
-            Imgproc.circle(input_rgba, new Point(cen_width,cen_height), 10, new Scalar(0, 0, 255), -1);
-            //Imgproc.line(input_rgba, new Point(cen_width,0) ,new Point(cen_width,height_scr),  new Scalar(255, 0, 0, 255), 2);
-            // detect line first detect edges
-            Mat edges = new Mat();
-            Imgproc.Canny(input_rgba,edges,80,200);
-            // detect lines in frame
-            // define variable first
-            // store lines in mat format
-            Mat lines = new Mat();
-            // starting and ending point of lines
-            Point p1 = new Point();
-            Point p2 = new Point();
-            double a,b;
-            double x0,y0;
-            Imgproc.HoughLines(edges,lines,1.0,Math.PI/180.0,140);
-            // then loop through each line
-            for (int i=0;i<lines.rows();i++)
-            {
-                // for each line
-                double[] vec = lines.get(i,0);
-                double rho = vec[0];
-                double theta = vec[1];
-                //
-                a = Math.cos(theta);
-                b = Math.sin(theta);
-                x0 = a * rho;
-                y0 = b * rho;
-                // starting and end point
-                p1.x = Math.round(x0 + 1000 * (-b));
-                p1.y = Math.round(y0 + 1000 * (a));
-                p2.x = Math.round(x0 - 1000 * (-b));
-                p2.y = Math.round(y0 - 1000 * (a));
-                // draw line on ori frame
-                //          draw on start end             color of line      thickness of line
-                Imgproc.line(input_rgba,p1,p2,new Scalar(255.0,255.0,255.0),1,Imgproc.LINE_AA,0);
-            }
-            return input_rgba;
+            //Bottom half of landscape image
+            matGray.submat(height / 2 -100, height, 300, width-300).copyTo(matEdges.submat(height / 2 -100, height, 300, width-300));
+            // Adaptive threshold
+            Imgproc.adaptiveThreshold(matEdges, matEdges, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 3, -1.5);
+            //Delete noise (little white points)
+            Imgproc.erode(matEdges, matEdges, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2, 2)));
+
+            openCVLineSegments();
+
+            return matRgba;
         }
     };
+    /**
+     * Lower threshold for portrait orientation and for detecting road lanes with horizon
+     *
+     * @return lineThreshold
+     */
+    private int getLineThreshold()
+    {
+        int actualThresh =  lineThreshold;
+
+        return actualThresh;
+    }
+    /**
+     * Draw detected lines to output image from temporary matrix
+     *
+     * @param tmp
+     */
+    private void drawTmpToMRgba(Mat tmp)
+    {
+        //draw line
+        Imgproc.line(matRgba, new Point(300, height / 2 - 101), new Point(width-300, height / 2 - 101), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(300, height / 2 - 101), new Point(300, height), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width-300, height / 2 - 101), new Point(width-300, height), new Scalar(0, 255, 0), 2);
+        if (tmp != null)
+            tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));
+    }
+
+    private void openCVLineSegments()
+    {
+        //Matrix of detected line segments
+        lines = new Mat();
+        //Line segments detection
+        Imgproc.HoughLinesP(matEdges, lines, 1, Math.PI / 180, getLineThreshold(), minLineSize, maxLineGap);
+        //Draw line segments
+        for (int i = 0; i < lines.cols(); i++)
+        {
+            double[] vec = lines.get(0, i);
+            double x1 = vec[0],
+                    y1 = vec[1],
+                    x2 = vec[2],
+                    y2 = vec[3];
+
+            Point start = new Point(x1, y1);
+            Point end = new Point(x2, y2);
+
+            Imgproc.line(matRgba, start, end, new Scalar(255, 0, 0), 3);
+        }
+
+        drawTmpToMRgba(null);
+
+        //Cleanup
+        Log.i(TAG, "lines:" + lines.cols());
+        lines.release();
+        lines = null;
+    }
 
     @Override
     protected List<? extends CameraBridgeViewBase> getCameraViewList()
     {
-        return Collections.singletonList(mOpenCvCameraView);
+        return Collections.singletonList(openCvCameraView);
     }
     //----以上是 OpenCV 的功能----//
     //----以下是 Bluetooth 的功能----//
