@@ -62,6 +62,7 @@ public class OpenCvControl extends CameraActivity
     private Mat matRgba;
     private Mat matGray;
     private Mat matEdges;
+    private Mat matCanary;
     private Mat lines;
     private Bitmap edgeBitmap;
     //camera bridge
@@ -104,7 +105,7 @@ public class OpenCvControl extends CameraActivity
     {
         super();
         lineThreshold = 70;
-        minLineSize = 100;
+        minLineSize = 10;
         maxLineGap = 100;
         orientation = 1;
         width = 0;
@@ -220,13 +221,13 @@ public class OpenCvControl extends CameraActivity
         {
             matRgba = inputFrame.rgba();
             matGray = inputFrame.gray();
-            Imgproc.circle(matRgba, new Point(width/2,320), 10, new Scalar(0, 0, 255), -1);
             //Bottom half of landscape image
-            matGray.submat(height / 2 -100, height, 250, width-250).copyTo(matEdges.submat(height / 2 -100, height, 250, width-250));
+            matGray.submat(height / 2 - 200, height / 2 + 200, width/5, width-width/5).copyTo(matEdges.submat(height / 2 -200, height / 2 + 200, width/5, width-width/5));
             // Adaptive threshold
             Imgproc.adaptiveThreshold(matEdges, matEdges, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 3, -1.5);
             //Delete noise (little white points)
             Imgproc.erode(matEdges, matEdges, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2, 2)));
+            Imgproc.circle(matRgba, new Point(width/2,height/2), 10, new Scalar(0, 0, 255), -1);
 
             openCVLineSegments();
 
@@ -254,10 +255,10 @@ public class OpenCvControl extends CameraActivity
     private void drawTmpToMRgba(Mat tmp)
     {
         //draw line
-        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(width-251, height / 2 - 101), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(251, height / 2 - 101), new Point(251, height), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width-251, height / 2 - 101), new Point(width-251, height), new Scalar(0, 255, 0), 2);
-
+        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 - 201), new Point(width - width /5 + 1, height / 2 - 201), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 - 201), new Point(width/5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width - width /5 + 1, height / 2 - 201), new Point(width - width /5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
+        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 + 201), new Point(width - width /5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
         if (tmp != null)
             tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));
     }
@@ -280,18 +281,26 @@ public class OpenCvControl extends CameraActivity
 
             Point start = new Point(x1, y1);
             Point end = new Point(x2, y2);
-            if((width/2)-20<x1 &&(width/2)+20>x2){
+            if((width/2)-100<x1 &&(width/2)+100>x2)
+            {
                 arrow=1;
                 Imgproc.putText(matRgba,"mid",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(255,255,0));
-            }else if((width/2)-x1>x2-(width/2)){
+                        0,2.6f,new Scalar(0,0,0));
+                //mBluetoothLeService.send("SRV1500154715001500#".getBytes());
+            }
+            else if((width/2)-x1>x2-(width/2))
+            {
                 arrow=2;
-                Imgproc.putText(matRgba,"right",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(255,255,0));
-            }else{
-                arrow=3;
                 Imgproc.putText(matRgba,"left",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(255,255,0));
+                        0,2.6f,new Scalar(0,0,0));
+                //mBluetoothLeService.send("SRV2000150015001500#".getBytes());
+            }
+            else
+            {
+                arrow=3;
+                Imgproc.putText(matRgba,"right",new org.opencv.core.Point(0,300),
+                        0,2.6f,new Scalar(0,0,0));
+                //mBluetoothLeService.send("SRV1000150015001500#".getBytes());
             }
             Imgproc.line(matRgba, start, end, new Scalar(255, 0, 0), 3);
         }
