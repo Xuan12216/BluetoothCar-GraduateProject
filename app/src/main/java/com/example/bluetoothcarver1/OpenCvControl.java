@@ -18,6 +18,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
@@ -31,10 +32,16 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,7 +69,7 @@ public class OpenCvControl extends CameraActivity
     private Mat matRgba;
     private Mat matGray;
     private Mat matEdges;
-    private Mat matCanary;
+    private Mat matTemp;
     private Mat lines;
     private Bitmap edgeBitmap;
     //camera bridge
@@ -73,6 +80,10 @@ public class OpenCvControl extends CameraActivity
     private int minLineSize;
     //Maximum length of gap between line segments
     private int maxLineGap;
+
+    //---------------
+    //test
+    Mat imgHSV, imgThresholded;
     //-----------------------------------------------
 
     // 通过OpenCV管理Android服务，异步初始化OpenCV
@@ -119,7 +130,9 @@ public class OpenCvControl extends CameraActivity
         Log.i(TAG, "called onCreate");
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_open_cv_control);
 
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
@@ -194,11 +207,14 @@ public class OpenCvControl extends CameraActivity
         @Override
         public void onCameraViewStarted(int width_scr, int height_scr)
         {
+            imgHSV = new Mat(width_scr,height_scr,CvType.CV_16UC4);
+            imgThresholded = new Mat(width_scr,height_scr,CvType.CV_16UC4);
             width = width_scr;
             height = height_scr;
             matRgba = new Mat(height, width, CvType.CV_8UC4);
             matGray = new Mat(height, width, CvType.CV_8UC1);
             matEdges = new Mat(height, width, CvType.CV_8UC1);
+            matTemp = new Mat(height_scr,width_scr,CvType.CV_8UC4);
             edgeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         }
 
@@ -209,6 +225,7 @@ public class OpenCvControl extends CameraActivity
             matGray.release();
             matEdges.release();
             edgeBitmap.recycle();
+            matTemp.release();
         }
 
         /**
@@ -220,98 +237,39 @@ public class OpenCvControl extends CameraActivity
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
             matRgba = inputFrame.rgba();
-            matGray = inputFrame.gray();
-            //Bottom half of landscape image
-            matGray.submat(height / 2 - 200, height / 2 + 200, width/5, width-width/5).copyTo(matEdges.submat(height / 2 -200, height / 2 + 200, width/5, width-width/5));
-            // Adaptive threshold
-            Imgproc.adaptiveThreshold(matEdges, matEdges, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 3, -1.5);
-            //Delete noise (little white points)
-            Imgproc.erode(matEdges, matEdges, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2, 2)));
-            Imgproc.circle(matRgba, new Point(width/2,height/2), 10, new Scalar(0, 0, 255), -1);
+            //降低曝光，beta值越低畫面亮度越暗
+            matRgba.convertTo(matRgba,-1,1,-100);
+            //convert color rgba to hsv and save the convert data to imgHSV MAT
+            Imgproc.cvtColor(matRgba, imgHSV, Imgproc.COLOR_BGR2RGB);
+            //set the color range , can scan black color object only
+            Core.inRange(imgHSV,new Scalar(0,0,0),new Scalar(40,40,40),imgHSV);
+            // size 越小，腐蚀的单位越小，图片越接近原图
+            Imgproc.erode(imgHSV,imgHSV,Imgproc.getStructuringElement(Imgproc.MORPH_RECT,new Size(2,2)));
+            Imgproc.dilate(imgHSV,imgHSV,new Mat());
+            //find contours
+            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+            Imgproc.findContours(imgHSV,contours,new Mat(),Imgproc.RETR_TREE,Imgproc.CHAIN_APPROX_SIMPLE);
 
-            openCVLineSegments();
-
-            return matRgba;
+            // find appropriate bounding rectangles
+            for (MatOfPoint contour : contours)
+            {
+                MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
+                RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
+                double rectangleArea = boundingRect.size.area();
+                // test min src area in pixels
+                if (rectangleArea > 1300 && rectangleArea < 500000) //400000
+                {
+                    Point rotated_rect_points[] = new Point[4];
+                    boundingRect.points(rotated_rect_points);
+                    Rect rect3 = Imgproc.boundingRect(new MatOfPoint(rotated_rect_points));
+                    // draw rectangle
+                    Imgproc.rectangle(matRgba, rect3.tl(), rect3.br(), new Scalar(0, 255, 0, 255), 3);
+                }
+            }
+            //show the image data
+            return imgHSV;
         }
     };
-
-    /**
-     * Lower threshold for portrait orientation and for detecting road lanes with horizon
-     *
-     * @return lineThreshold
-     */
-    private int getLineThreshold()
-    {
-        int actualThresh =  lineThreshold;
-
-        return actualThresh;
-    }
-
-    /**
-     * Draw detected lines to output image from temporary matrix
-     *
-     * @param tmp
-     */
-    private void drawTmpToMRgba(Mat tmp)
-    {
-        //draw line
-        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 - 201), new Point(width - width /5 + 1, height / 2 - 201), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 - 201), new Point(width/5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width - width /5 + 1, height / 2 - 201), new Point(width - width /5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
-        Imgproc.line(matRgba, new Point(width/5 + 1, height / 2 + 201), new Point(width - width /5 + 1, height / 2 + 201), new Scalar(0, 255, 0), 2);
-        if (tmp != null)
-            tmp.submat(height / 2, height, 0, width).copyTo(matRgba.submat(height / 2, height, 0, width));
-    }
-
-    private void openCVLineSegments()
-    {
-        //Matrix of detected line segments
-        lines = new Mat();
-
-        //Line segments detection
-        Imgproc.HoughLinesP(matEdges, lines, 1, Math.PI / 180, getLineThreshold(), minLineSize, maxLineGap);
-        //Draw line segments
-        for (int i = 0; i < lines.cols(); i++)
-        {
-            double[] vec = lines.get(0, i);
-            double x1 = vec[0],
-                    y1 = vec[1],
-                    x2 = vec[2],
-                    y2 = vec[3];
-
-            Point start = new Point(x1, y1);
-            Point end = new Point(x2, y2);
-            if((width/2)-100<x1 &&(width/2)+100>x2)
-            {
-                arrow=1;
-                Imgproc.putText(matRgba,"mid",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(0,0,0));
-                //mBluetoothLeService.send("SRV1500154715001500#".getBytes());
-            }
-            else if((width/2)-x1>x2-(width/2))
-            {
-                arrow=2;
-                Imgproc.putText(matRgba,"left",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(0,0,0));
-                //mBluetoothLeService.send("SRV2000150015001500#".getBytes());
-            }
-            else
-            {
-                arrow=3;
-                Imgproc.putText(matRgba,"right",new org.opencv.core.Point(0,300),
-                        0,2.6f,new Scalar(0,0,0));
-                //mBluetoothLeService.send("SRV1000150015001500#".getBytes());
-            }
-            Imgproc.line(matRgba, start, end, new Scalar(255, 0, 0), 3);
-        }
-
-        drawTmpToMRgba(null);
-
-        //Cleanup
-        Log.i(TAG, "lines:" + lines.cols());
-        lines.release();
-        lines = null;
-    }
 
     @Override
     protected List<? extends CameraBridgeViewBase> getCameraViewList()
@@ -368,9 +326,11 @@ public class OpenCvControl extends CameraActivity
             mBluetoothLeService.disconnect();
         }
     };
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver()
+    {
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, Intent intent)
+        {
             final String action = intent.getAction();
 
             /**如果有連接*/
