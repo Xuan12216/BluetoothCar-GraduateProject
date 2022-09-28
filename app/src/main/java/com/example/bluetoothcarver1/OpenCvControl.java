@@ -237,14 +237,12 @@ public class OpenCvControl extends CameraActivity
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
             matRgba = inputFrame.rgba();
-            //降低曝光，beta值越低畫面亮度越暗
-            matRgba.convertTo(matRgba,-1,1,-100);
             //convert color rgba to hsv and save the convert data to imgHSV MAT
             Imgproc.cvtColor(matRgba, imgHSV, Imgproc.COLOR_BGR2RGB);
             //set the color range , can scan black color object only
-            Core.inRange(imgHSV,new Scalar(0,0,0),new Scalar(40,40,40),imgHSV);
+            Core.inRange(imgHSV,new Scalar(130, 130, 130),new Scalar(255,255,255),imgHSV);
             // size 越小，腐蚀的单位越小，图片越接近原图
-            Imgproc.erode(imgHSV,imgHSV,Imgproc.getStructuringElement(Imgproc.MORPH_RECT,new Size(2,2)));
+            Imgproc.erode(imgHSV,imgHSV,Imgproc.getStructuringElement(Imgproc.MORPH_RECT,new Size(3,3)));
             Imgproc.dilate(imgHSV,imgHSV,new Mat());
             //find contours
             List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -257,7 +255,7 @@ public class OpenCvControl extends CameraActivity
                 RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
                 double rectangleArea = boundingRect.size.area();
                 // test min src area in pixels
-                if (rectangleArea > 1300 && rectangleArea < 500000) //400000
+                if (rectangleArea > 50000 && rectangleArea < 500000) //400000
                 {
                     Point rotated_rect_points[] = new Point[4];
                     boundingRect.points(rotated_rect_points);
@@ -266,8 +264,9 @@ public class OpenCvControl extends CameraActivity
                     Imgproc.rectangle(matRgba, rect3.tl(), rect3.br(), new Scalar(0, 255, 0, 255), 3);
                 }
             }
+
             //show the image data
-            return imgHSV;
+            return matRgba;
         }
     };
 
