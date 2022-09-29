@@ -255,13 +255,13 @@ public class OpenCvControl extends CameraActivity
                 RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
                 double rectangleArea = boundingRect.size.area();
                 // test min src area in pixels
-                if (rectangleArea > 50000 && rectangleArea < 500000) //400000
+                if (rectangleArea > 10000 && rectangleArea < 500000) //400000
                 {
-                    Point rotated_rect_points[] = new Point[4];
-                    boundingRect.points(rotated_rect_points);
-                    Rect rect3 = Imgproc.boundingRect(new MatOfPoint(rotated_rect_points));
-                    // draw rectangle
-                    Imgproc.rectangle(matRgba, rect3.tl(), rect3.br(), new Scalar(0, 255, 0, 255), 3);
+                    Point[] vertices = new Point[4];
+                    boundingRect.points(vertices);
+                    List<MatOfPoint> boxContours = new ArrayList<>();
+                    boxContours.add(new MatOfPoint(vertices));
+                    Imgproc.drawContours(matRgba, boxContours, 0, new Scalar(0, 0, 255), 10);
                 }
             }
 
