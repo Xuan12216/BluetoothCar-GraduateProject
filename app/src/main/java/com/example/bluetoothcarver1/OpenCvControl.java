@@ -262,7 +262,16 @@ public class OpenCvControl extends CameraActivity
                     List<MatOfPoint> boxContours = new ArrayList<>();
                     boxContours.add(new MatOfPoint(vertices));
                     Imgproc.drawContours(matRgba, boxContours, 0, new Scalar(0, 0, 255), 10);
-                    Imgproc.putText(matRgba,"angle:"+String.format("%02.0f",boundingRect.angle),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
+                    Mat result =new Mat();
+                    Imgproc.boxPoints(boundingRect,result);
+
+                    if(boundingRect.center.x>400){
+                        Imgproc.putText(matRgba,"right:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
+                    }else if(boundingRect.center.x<200){
+                        Imgproc.putText(matRgba,"left:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
+                    }else{
+                        Imgproc.putText(matRgba,"middle:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
+                    }
                 }
             }
 
