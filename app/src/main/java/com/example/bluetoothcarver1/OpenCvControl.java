@@ -272,19 +272,81 @@ public class OpenCvControl extends CameraActivity
                     Imgproc.boxPoints(boundingRect,result);
                     //draw line
                     Imgproc.line(matRgba,new Point(width/2,height-125),new Point((int)boundingRect.center.x,(int)boundingRect.center.y),new Scalar(0,255,0),5);
-                    Imgproc.putText(matRgba,"Distance:"+(((int)boundingRect.center.x)-(width/2)),new org.opencv.core.Point(500,100), 0,2,new Scalar(255,255,0),5);
+                    int distance = (((int)boundingRect.center.x)-(width/2));
+                    Imgproc.putText(matRgba,"Distance:"+distance,new org.opencv.core.Point(500,100), 0,2,new Scalar(255,255,0),5);
                     //left / right or middle
-                    if(boundingRect.center.x>width/2+200)
+                    String sendData1;
+                    if(boundingRect.center.x>width/2+100)
                     {
-                        Imgproc.putText(matRgba,"right:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                        if(distance<200)
+                        {
+                            Imgproc.putText(matRgba,"right_1:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1400150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance<300)
+                        {
+                            Imgproc.putText(matRgba,"right_2:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1300150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance<400)
+                        {
+                            Imgproc.putText(matRgba,"right_3:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1200150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance<500)
+                        {
+                            Imgproc.putText(matRgba,"right_4:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1100150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance<600)
+                        {
+                            Imgproc.putText(matRgba,"right_5:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1000150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
                     }
-                    else if(boundingRect.center.x<width/2-200)
+                    else if(boundingRect.center.x<width/2-100)
                     {
-                        Imgproc.putText(matRgba,"left:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                        if(distance>-200)
+                        {
+                            Imgproc.putText(matRgba,"left_1:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1600150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance>-300)
+                        {
+                            Imgproc.putText(matRgba,"left_2:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1700150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance>-400)
+                        {
+                            Imgproc.putText(matRgba,"left_3:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1800150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance>-500)
+                        {
+                            Imgproc.putText(matRgba,"left_4:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV1900150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
+                        else if (distance>-600)
+                        {
+                            Imgproc.putText(matRgba,"left_5:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                            //sendData1 = "SRV2000150015001500#";
+                            //mBluetoothLeService.send(sendData1.getBytes());
+                        }
                     }
                     else
                     {
                         Imgproc.putText(matRgba,"middle:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),10);
+                        //sendData1 = "SRV1500155015001500#";
+                        //mBluetoothLeService.send(sendData1.getBytes());
                     }
                 }
             }
