@@ -136,8 +136,8 @@ public class OpenCvControl extends CameraActivity
         setContentView(R.layout.activity_open_cv_control);
 
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
-        //initBLE();
-        //initUI();
+        initBLE();
+        initUI();
 
         // 实现绑定和添加事件监听
         openCvCameraView = findViewById(R.id.hough_activity_surface_view);
