@@ -237,13 +237,19 @@ public class OpenCvControl extends CameraActivity
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
             matRgba = inputFrame.rgba();
+            Mat roi = new Mat(height, width, CvType.CV_8UC4);
+            matRgba.submat(height-200, height-50, 20, width-20).copyTo(roi.submat(height-200, height-50, 20, width-20));
             //convert color rgba to hsv and save the convert data to imgHSV MAT
-            Imgproc.cvtColor(matRgba, imgHSV, Imgproc.COLOR_BGR2RGB);
+            Imgproc.cvtColor(roi, imgHSV, Imgproc.COLOR_BGR2RGB);
             //set the color range , can scan black color object only
             Core.inRange(imgHSV,new Scalar(130, 130, 130),new Scalar(255,255,255),imgHSV);
             // size 越小，腐蚀的单位越小，图片越接近原图
             Imgproc.erode(imgHSV,imgHSV,Imgproc.getStructuringElement(Imgproc.MORPH_RECT,new Size(3,3)));
             Imgproc.dilate(imgHSV,imgHSV,new Mat());
+            //draw rectangle
+            Imgproc.rectangle (matRgba, new Rect(10,height-210,width-20,170), new Scalar(255,0,0),10);
+            //draw circle
+            Imgproc.circle (matRgba, new Point(width/2, height-125), 5, new Scalar(255, 0, 0), 20);
             //find contours
             List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
             Imgproc.findContours(imgHSV,contours,new Mat(),Imgproc.RETR_TREE,Imgproc.CHAIN_APPROX_SIMPLE);
@@ -264,13 +270,33 @@ public class OpenCvControl extends CameraActivity
                     Imgproc.drawContours(matRgba, boxContours, 0, new Scalar(0, 0, 255), 10);
                     Mat result =new Mat();
                     Imgproc.boxPoints(boundingRect,result);
+                    //draw line
+                    Imgproc.line(matRgba,new Point(width/2,height-125),new Point((int)boundingRect.center.x,(int)boundingRect.center.y),new Scalar(0,255,0),5);
+                    Imgproc.putText(matRgba,"Distance:"+(((int)boundingRect.center.x)-(width/2)),new org.opencv.core.Point(500,100), 0,2,new Scalar(255,255,0),5);
+                    //left / right or middle
+                    String sendData1;
+                    if(boundingRect.center.x>width/2+200)
+                    {
+                        Imgproc.putText(matRgba,"right:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+                        sendData1 = "SRV"+String.valueOf(1500-(int)(360-boundingRect.center.x))+"150015001500#";
+                        tvRespond.setText(sendData1);
+                        mBluetoothLeService.send(sendData1.getBytes());
 
-                    if(boundingRect.center.x>400){
-                        Imgproc.putText(matRgba,"right:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
-                    }else if(boundingRect.center.x<200){
-                        Imgproc.putText(matRgba,"left:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
-                    }else{
-                        Imgproc.putText(matRgba,"middle:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,1.2f,new Scalar(255,255,0));
+                    }
+                    else if(boundingRect.center.x<width/2-200)
+                    {
+                        Imgproc.putText(matRgba,"left:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),5);
+
+                        sendData1 = "SRV"+String.valueOf(1500+(int)(360-boundingRect.center.x))+"150015001500#";
+                        tvRespond.setText(sendData1);
+                        mBluetoothLeService.send(sendData1.getBytes());
+                    }
+                    else
+                    {
+                        Imgproc.putText(matRgba,"middle:"+String.format("%02.0f",boundingRect.center.x),new org.opencv.core.Point(0,100), 0,2,new Scalar(255,255,0),10);
+                        sendData1 = "SRV1500155015001500#";
+                        tvRespond.setText(sendData1);
+                        mBluetoothLeService.send(sendData1.getBytes());
                     }
                 }
             }
