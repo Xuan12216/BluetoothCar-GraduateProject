@@ -44,6 +44,7 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class OpenCvControl extends CameraActivity
 {
@@ -53,12 +54,8 @@ public class OpenCvControl extends CameraActivity
     private BluetoothLeService mBluetoothLeService;
     private ScannedData selectedDevice;
     private TextView tvAddress,tvStatus,tvRespond;
-    private boolean isLedOn = false;
-    public int arrow=0;
 
     //OpenCV
-    //Application settings
-    private static final int SETTINGS = 10;
     //Current screen orientation
     public static int orientation;
     //Height of image frame
@@ -67,23 +64,11 @@ public class OpenCvControl extends CameraActivity
     private int width;
     //Working matrices
     private Mat matRgba;
-    private Mat matGray;
-    private Mat matEdges;
-    private Mat matTemp;
-    private Mat lines;
-    private Bitmap edgeBitmap;
+    Mat imgHSV, imgRgba;
+    int count=0;
     //camera bridge
     private CameraBridgeViewBase openCvCameraView;
-    //How many votes in hough space should indicate line
-    private int lineThreshold;
-    //Minimum line segment length
-    private int minLineSize;
-    //Maximum length of gap between line segments
-    private int maxLineGap;
 
-    //---------------
-    //test
-    Mat imgHSV, imgThresholded;
     //-----------------------------------------------
 
     // 通过OpenCV管理Android服务，异步初始化OpenCV
@@ -115,9 +100,6 @@ public class OpenCvControl extends CameraActivity
     public OpenCvControl()
     {
         super();
-        lineThreshold = 70;
-        minLineSize = 10;
-        maxLineGap = 100;
         orientation = 1;
         width = 0;
         height = 0;
@@ -135,37 +117,14 @@ public class OpenCvControl extends CameraActivity
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_open_cv_control);
 
+        count=0;
         selectedDevice = (ScannedData) getIntent().getSerializableExtra(INTENT_KEY);
-        //initBLE();
-        //initUI();
+        initBLE();
+        initUI();
 
         // 实现绑定和添加事件监听
         openCvCameraView = findViewById(R.id.hough_activity_surface_view);
         openCvCameraView.setCvCameraViewListener(cvCameraViewListener);
-        //Register accelerometer sensor handler for determining current screen orientation
-        SensorManager sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
-        sensorManager.registerListener(new SensorEventListener()
-        {
-            int orientation = -1;
-            @Override
-            public void onSensorChanged(SensorEvent event)
-            {
-                if (event.values[1] < 6.5 && event.values[1] > -6.5)
-                {
-                    if (orientation != 1)
-                        OpenCvControl.orientation = 1;
-                    orientation = 1;
-                }
-                else
-                {
-                    if (orientation != 0)
-                        OpenCvControl.orientation = 0;
-                    orientation = 0;
-                }
-            }
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-        }, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
     }
 
     //----以下是 OpenCV 的功能----//
@@ -207,25 +166,19 @@ public class OpenCvControl extends CameraActivity
         @Override
         public void onCameraViewStarted(int width_scr, int height_scr)
         {
-            imgHSV = new Mat(width_scr,height_scr,CvType.CV_16UC4);
-            imgThresholded = new Mat(width_scr,height_scr,CvType.CV_16UC4);
+            imgHSV = new Mat(width_scr,height_scr,CvType.CV_8UC4);
+            imgRgba = new Mat(width_scr,height_scr,CvType.CV_8UC4);
             width = width_scr;
             height = height_scr;
             matRgba = new Mat(height, width, CvType.CV_8UC4);
-            matGray = new Mat(height, width, CvType.CV_8UC1);
-            matEdges = new Mat(height, width, CvType.CV_8UC1);
-            matTemp = new Mat(height_scr,width_scr,CvType.CV_8UC4);
-            edgeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         }
 
         @Override
         public void onCameraViewStopped()
         {
+            imgHSV.release();
+            imgRgba.release();
             matRgba.release();
-            matGray.release();
-            matEdges.release();
-            edgeBitmap.recycle();
-            matTemp.release();
         }
 
         /**
@@ -237,51 +190,54 @@ public class OpenCvControl extends CameraActivity
         public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
         {
             matRgba = inputFrame.rgba();
-            Imgproc.cvtColor(matRgba, imgHSV, Imgproc.COLOR_BGR2RGB);
-            Core.inRange(imgHSV,new Scalar(0,0,0),new Scalar(20,20,20),imgHSV);
+            Mat roi = new Mat(height, width, CvType.CV_8UC4);
+            //traffic
+            Mat traffic = new Mat(height, width, CvType.CV_8UC4);
+            matRgba.submat(height - 200, height - 50, 20, width - 20).copyTo(roi.submat(height - 200, height - 50, 20, width - 20));
+            //traffic
+            matRgba.submat(height - 200, height - 50, 20, width - 20).copyTo(traffic.submat(height - 200, height - 50, 20, width - 20));
+            //convert color BRG to RGB and save the convert data to imgRgba MAT
+            Imgproc.cvtColor(roi, imgRgba, Imgproc.COLOR_BGR2RGB);
+            //traffic
+            Imgproc.cvtColor(traffic, imgHSV, Imgproc.COLOR_RGB2HSV_FULL);
+            //set the color range , can scan black color object only
+            Core.inRange(imgRgba, new Scalar(130, 130, 130), new Scalar(255, 255, 255), imgRgba);
+            //traffic
+            Core.inRange(imgHSV, new Scalar(0,100,60), new Scalar(5, 255, 255), imgHSV);
+            // size 越小，腐蚀的单位越小，图片越接近原图
+            Imgproc.erode(imgRgba, imgRgba, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3)));
+            Imgproc.dilate(imgRgba, imgRgba, new Mat());
+            //traffic
+            Imgproc.erode(imgHSV, imgHSV, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3)));
+            Imgproc.dilate(imgHSV, imgHSV, new Mat());
+            //draw rectangle
+            Imgproc.rectangle(matRgba, new Rect(10, height - 210, width - 20, 170), new Scalar(255, 0, 0), 10);
+            //draw circle
+            Imgproc.circle(matRgba, new Point(width / 2, height - 125), 5, new Scalar(255, 0, 0), 20);
+            //find contours
+            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+            Imgproc.findContours(imgRgba, contours, new Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+            //traffic
+            List<MatOfPoint> contours1 = new ArrayList<MatOfPoint>();
+            Imgproc.findContours(imgHSV, contours1, new Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
 
-            Imgproc.erode(imgHSV,imgHSV,Imgproc.getStructuringElement(Imgproc.MORPH_RECT,new Size(3,3)));
-            Imgproc.dilate(imgHSV,imgHSV,new Mat());
-
-            List<MatOfPoint> contourstrafficlight = new ArrayList<MatOfPoint>();
-            Imgproc.findContours(imgHSV,contourstrafficlight,new Mat(),Imgproc.RETR_TREE,Imgproc.CHAIN_APPROX_SIMPLE);
-            int state =0;
-            for (MatOfPoint contour : contourstrafficlight)
+            if(count==0)
             {
-                MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
-                RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
-                double rectangleArea = boundingRect.size.area();
-                // test min src area in pixels
-                if (rectangleArea > 10000 && rectangleArea < 500000) //400000
-                {
-                    Point[] vertices = new Point[4];
-                    boundingRect.points(vertices);
-                    List<MatOfPoint> boxContours = new ArrayList<>();
-                    boxContours.add(new MatOfPoint(vertices));
-                    Imgproc.drawContours(matRgba, boxContours, 0, new Scalar(0, 255,0), 10);
-                    state =1;
-                }
+                try {Thread.sleep(1000);}
+                catch (InterruptedException e) {e.printStackTrace();}
+                count+=1;
             }
-            if(state==0) {
-                Mat roi = new Mat(height, width, CvType.CV_8UC4);
-                matRgba.submat(height - 200, height - 50, 20, width - 20).copyTo(roi.submat(height - 200, height - 50, 20, width - 20));
-                //convert color rgba to hsv and save the convert data to imgHSV MAT
-                Imgproc.cvtColor(roi, imgHSV, Imgproc.COLOR_BGR2RGB);
-                //set the color range , can scan black color object only
-                Core.inRange(imgHSV, new Scalar(130, 130, 130), new Scalar(255, 255, 255), imgHSV);
-                // size 越小，腐蚀的单位越小，图片越接近原图
-                Imgproc.erode(imgHSV, imgHSV, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3)));
-                Imgproc.dilate(imgHSV, imgHSV, new Mat());
-                //draw rectangle
-                Imgproc.rectangle(matRgba, new Rect(10, height - 210, width - 20, 170), new Scalar(255, 0, 0), 10);
-                //draw circle
-                Imgproc.circle(matRgba, new Point(width / 2, height - 125), 5, new Scalar(255, 0, 0), 20);
-                //find contours
-                List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-                Imgproc.findContours(imgHSV, contours, new Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
-
+            if(contours1.size()>0)
+            {
+                Imgproc.putText(matRgba, "Red Color,Stop", new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 10);
+                String sendData1 = "SRV1500150015001500#";
+                mBluetoothLeService.send(sendData1.getBytes());
+            }
+            else if(contours.size()>0 && contours1.size()<=0)
+            {
                 // find appropriate bounding rectangles
-                for (MatOfPoint contour : contours) {
+                for (MatOfPoint contour : contours)
+                {
                     MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
                     RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
                     double rectangleArea = boundingRect.size.area();
@@ -301,61 +257,80 @@ public class OpenCvControl extends CameraActivity
                         Imgproc.putText(matRgba, "Distance:" + distance, new org.opencv.core.Point(500, 100), 0, 2, new Scalar(255, 255, 0), 5);
                         //left / right or middle
                         String sendData1;
-                        if (boundingRect.center.x > width / 2 + 100) {
-                            if (distance < 200) {
+                        if (boundingRect.center.x > width / 2 + 100)
+                        {
+                            if (distance < 200)
+                            {
                                 Imgproc.putText(matRgba, "right_1:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1400150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance < 300) {
+                                sendData1 = "SRV1400154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance < 300)
+                            {
                                 Imgproc.putText(matRgba, "right_2:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1300150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance < 400) {
+                                sendData1 = "SRV1300154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance < 400)
+                            {
                                 Imgproc.putText(matRgba, "right_3:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1200150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance < 500) {
+                                sendData1 = "SRV1200154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance < 500)
+                            {
                                 Imgproc.putText(matRgba, "right_4:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1100150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance < 600) {
+                                sendData1 = "SRV1100154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance < 600)
+                            {
                                 Imgproc.putText(matRgba, "right_5:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1000150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
+                                sendData1 = "SRV1000154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
                             }
-                        } else if (boundingRect.center.x < width / 2 - 100) {
-                            if (distance > -200) {
+                        }
+                        else if (boundingRect.center.x < width / 2 - 100)
+                        {
+                            if (distance > -200)
+                            {
                                 Imgproc.putText(matRgba, "left_1:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1600150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance > -300) {
-                                Imgproc.putText(matRgba, "left_2:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1700150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance > -400) {
-                                Imgproc.putText(matRgba, "left_3:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1800150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance > -500) {
-                                Imgproc.putText(matRgba, "left_4:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV1900150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
-                            } else if (distance > -600) {
-                                Imgproc.putText(matRgba, "left_5:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
-                                //sendData1 = "SRV2000150015001500#";
-                                //mBluetoothLeService.send(sendData1.getBytes());
+                                sendData1 = "SRV1600154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
                             }
-                        } else {
+                            else if (distance > -300)
+                            {
+                                Imgproc.putText(matRgba, "left_2:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
+                                sendData1 = "SRV1700154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance > -400)
+                            {
+                                Imgproc.putText(matRgba, "left_3:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
+                                sendData1 = "SRV1800154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance > -500)
+                            {
+                                Imgproc.putText(matRgba, "left_4:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
+                                sendData1 = "SRV1900154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                            else if (distance > -600)
+                            {
+                                Imgproc.putText(matRgba, "left_5:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
+                                sendData1 = "SRV2000154515001500#";
+                                mBluetoothLeService.send(sendData1.getBytes());
+                            }
+                        }
+                        else if(boundingRect.center.x > width / 2 - 100 && boundingRect.center.x < width / 2 + 100)
+                        {
                             Imgproc.putText(matRgba, "middle:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 10);
-                            //sendData1 = "SRV1500155015001500#";
-                            //mBluetoothLeService.send(sendData1.getBytes());
+                            sendData1 = "SRV1500154515001500#";
+                            mBluetoothLeService.send(sendData1.getBytes());
                         }
                     }
                 }
-            }else{
-                Imgproc.putText(matRgba,"red",new org.opencv.core.Point(0,100), 0,2,new Scalar(255,0,0),5);
-                //sendData1 = "SRV1000150015001500#";
-                //mBluetoothLeService.send(sendData1.getBytes());
             }
             //show the image data
             return matRgba;
@@ -384,9 +359,10 @@ public class OpenCvControl extends CameraActivity
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);//查找GATT服務
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);//從服務中接受(收)數據
 
-        registerReceiver(mGattUpdateReceiver, intentFilter);
+        //registerReceiver(mGattUpdateReceiver, intentFilter);
         if (mBluetoothLeService != null)
             mBluetoothLeService.connect(selectedDevice.getAddress());
+
     }
     /**初始化UI*/
     private void initUI()
@@ -454,7 +430,6 @@ public class OpenCvControl extends CameraActivity
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
                 tvRespond.setText("String: "+stringData+"\n"
                         +"byte[]: "+BluetoothLeService.byteArrayToHexStr(getByteData));
-                isLedOn = BluetoothLeService.byteArrayToHexStr(getByteData).equals("486173206F6E");
             }
         }
     };//onReceive
