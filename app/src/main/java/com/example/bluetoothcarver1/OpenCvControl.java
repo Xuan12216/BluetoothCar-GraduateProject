@@ -185,8 +185,8 @@ public class OpenCvControl extends CameraActivity
             //traffic
             Mat traffic = new Mat(height, width, CvType.CV_8UC4);
             matRgba.submat(height - 200, height - 50, 20, width - 20).copyTo(roi.submat(height - 200, height - 50, 20, width - 20));
-            //traffic
-            matRgba.submat(height - 200, height - 50, 20, width - 20).copyTo(traffic.submat(height - 200, height - 50, 20, width - 20));
+            //traffic, row start = 上面 , row end = 下面 , col start = 左边 , col end = 右边
+            matRgba.submat(200, height/2 - 50, 20, width/2 - 50).copyTo(traffic.submat(200, height/2 - 50, 20, width/2 - 50));
             //convert color BRG to RGB and save the convert data to imgRgba MAT
             Imgproc.cvtColor(roi, imgRgba, Imgproc.COLOR_BGR2RGB);
             //traffic
@@ -201,8 +201,9 @@ public class OpenCvControl extends CameraActivity
             //traffic
             Imgproc.erode(imgHSV, imgHSV, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3)));
             Imgproc.dilate(imgHSV, imgHSV, new Mat());
-            //draw rectangle
-            Imgproc.rectangle(matRgba, new Rect(10, height - 210, width - 20, 170), new Scalar(255, 0, 0), 10);
+            //draw rectangle ,x=左边, y=上面，width=colStart-colEnd+20
+            Imgproc.rectangle(matRgba, new Rect(10, height - 210, width - 20, 170), new Scalar(255, 255, 255), 10);
+            Imgproc.rectangle(matRgba, new Rect(10, 190, width/2-50, height/2), new Scalar(255, 0, 0), 10);
             //draw circle
             Imgproc.circle(matRgba, new Point(width / 2, height - 125), 5, new Scalar(255, 0, 0), 20);
             //find contours
@@ -276,7 +277,7 @@ public class OpenCvControl extends CameraActivity
                             sendData1 = "SRV1100154515001500#";
                             mBluetoothLeService.send(sendData1.getBytes());
                         }
-                        else if (distance < 500)
+                        else
                         {
                             Imgproc.putText(matRgba, "right_4:" + String.format("%02.0f", boundingRect.center.x), new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 5);
                             sendData1 = "SRV1000154515001500#";
@@ -318,6 +319,12 @@ public class OpenCvControl extends CameraActivity
                     }
                 }
             }
+        }
+        else
+        {
+            Imgproc.putText(matRgba, "No Line Detect ,Stop", new org.opencv.core.Point(0, 100), 0, 2, new Scalar(255, 255, 0), 10);
+            String sendData1 = "SRV1500150015001500#";
+            mBluetoothLeService.send(sendData1.getBytes());
         }
     }
 
